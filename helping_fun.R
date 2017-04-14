@@ -1,3 +1,12 @@
+set_lib_path_local <- function(my.lib = "Packages"){
+  .libPaths(c(.libPaths(), my.lib))
+}
+
+install_lib_local <- function(package = "MSGARCH", my.lib = "Packages"){
+  set_lib_path_local()
+  install.packages(package, lib = my.lib)
+}
+
 read.data.closing <- function(in_file, length_data, head_data = F){
   data <- read.csv(paste0("Input/", in_file, ".csv"), sep = ",", stringsAsFactors = F)
   data <- data[order(as.Date(data$Date)), ]
