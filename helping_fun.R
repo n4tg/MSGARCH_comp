@@ -1,11 +1,23 @@
+# Library handle ----------------------------------------------------------
+
 set_lib_path_local <- function(my.lib = "Packages"){
   .libPaths(c(.libPaths(), my.lib))
 }
 
-install_lib_local <- function(package = "MSGARCH", my.lib = "Packages"){
-  set_lib_path_local()
+install_lib_local <- function(package, my.lib = "Packages"){
+  set_lib_path_local(my.lib)
   install.packages(package, lib = my.lib)
 }
+
+set_library <- function(){
+  if(!require(MSGARCH) || !require(data.table)){
+    set_lib_path_local()
+    library(MSGARCH)
+    library(data.table)
+  }
+}
+
+# Raw data processing -----------------------------------------------------
 
 read.data.closing <- function(in_file, length_data, head_data = F){
   data <- read.csv(paste0("Input/", in_file, ".csv"), sep = ",", stringsAsFactors = F)
@@ -55,12 +67,32 @@ kurtosis <- function(data){
   mean( ( (data-mean(data))/sd(data) )^4 )
 }
 
-Wald.test <- function(theta_hat,
-                      Vn,
-                      R,
-                      r = 0){
-  W <- t(R %*% theta_hat - r) %*% solve(R %*% Vn %*% t(R)) %*% (R %*% theta_hat - r)
-  df <- nrow(R)
-  pval <- 1-pchisq(as.numeric(W), df)
-  return(data.frame(W = W, df = df, p = pval))
+# Utility functions -------------------------------------------------------
+
+simahead_exclude_inf <- function(object, n, m, theta, y){
+  y <- as.matrix(y)
+  theta <- as.vector(theta)
+  draws <- state <- matrix(data = NA, nrow = m, ncol = n)
+  
+  for(j in 1:n){
+    for(i in 1:m){
+      rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
+      while(length(which(is.infinite(rand$draws))) > 0) rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
+      draws[i,j] = rand$draws
+      state[i,j] = rand$state
+    }
+  }
+  
+  return(list(draws = draws,
+              state = state))
+}
+
+check.alpha <- function(alpha){
+  if((!is.numeric(alpha)) || (alpha < 0) || (alpha > 1)) stop("Input argument (alpha) must be numeric between 0 and 1.")
+  return(alpha)
+}
+
+check.hit <- function(hit){
+  if(prod(hit %in% c(T,F))) stop("Input argument (hit) should be a vector consists of only 0 or FALSE or 1 or TRUE.")
+  return(hit)
 }
