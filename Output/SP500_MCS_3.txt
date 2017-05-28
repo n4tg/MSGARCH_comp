@@ -1,0 +1,22 @@
+
+------------------------------------------
+-          Superior Set of Models        -
+------------------------------------------
+                            Rank_M         v_M MCS_M Rank_R         v_R  MCS_R       Loss
+fit_mle_sGARCH_norm              3 -0.66490457  1.00      3  0.57652045 1.0000 0.05443239
+fit_bayes_sGARCH_norm            1 -1.50826329  1.00      1 -0.03903246 1.0000 0.05359295
+fit_bayes_sGARCH_skewnorm        4 -0.65854364  1.00      4  0.58139615 1.0000 0.05443815
+fit_bayes_sGARCH_t               6  0.39176843  1.00      6  1.28070564 1.0000 0.05546688
+fit_bayes_eGARCH_norm            2 -1.45495855  1.00      2  0.03901382 1.0000 0.05364992
+fit_bayes_eGARCH_skewnorm        9  1.22281005  1.00      9  1.81726425 0.1974 0.05628490
+fit_bayes_eGARCH_t               8  0.88064716  1.00      8  1.59576011 0.9970 0.05594477
+fit_bayes_gjrGARCH_norm          5 -0.06853805  1.00      5  0.97269089 1.0000 0.05501623
+fit_bayes_gjrGARCH_skewnorm      7  0.51070503  1.00      7  1.35572720 1.0000 0.05558136
+fit_bayes_gjrGARCH_t            10  1.36205360  0.78     10  1.91160645 0.0094 0.05642366
+
+Details
+------------------------------------------
+
+Number of eliminated models	:	8
+Statistic	:	Tmax
+Elapsed Time	:	Time difference of 3.760689 mins
