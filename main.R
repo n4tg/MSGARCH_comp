@@ -2,10 +2,10 @@ rm(list = ls())
 
 # Inputs ------------------------------------------------------------------
 
-input.data = "DAX"
+input.data = "Nikkei"
 
 alpha <- 0.01
-tau <- 1
+tau <- 22
 
 window_size <- 3000
 N.data <- 5000
@@ -219,7 +219,9 @@ print("END OF FOR-LOOP")
 # Forecasting evaluation --------------------------------------------------
 
 filename = paste0(input.data, "_VaR_", tau, "_1_500.csv")
-VaR = read.csv(paste0("Output/", filename), header = T, stringsAsFactors = F, sep = ";")
+VaR = read.csv(paste0("Output/", filename), header = F, stringsAsFactors = F, sep = ",")
+
+VaR_orig = VaR
 
 names(VaR) <- 
   c("iteration",
@@ -230,30 +232,33 @@ names(VaR) <-
     "fit.bayes.eGARCH.norm", "fit.bayes.eGARCH.skewnorm", "fit.bayes.eGARCH.t",
     "fit.bayes.gjrGARCH.norm", "fit.bayes.gjrGARCH.skewnorm", "fit.bayes.gjrGARCH.t")
 
-VaR_orig = VaR
-
-n.fix = which(is.na(VaR))
+n.fix.na = which(is.na(VaR))
+n.fix.inf = which(is.infinite(as.matrix(VaR)))
+n.fix.nan = which(is.nan(as.matrix(VaR)))
+n.fix = c(n.fix.na, n.fix.inf, n.fix.nan)
 
 for(i in n.fix){
-  
-  n.col.fix = ceiling(n.fix/N.period)
+  print(paste0("Start fix ", input.data, ", tau = ", tau, ", n.fix = ", i, " (", which(n.fix == i), " of ", length(n.fix), ")"))
+  n.col.fix = ceiling(i/N.period)
   string = colnames(VaR[n.col.fix])
   strings = unlist(strsplit(string, "[.]"))
   spec = get(gsub(paste0(strings[1], ".", strings[2]),"spec", string))
   
-  n.row.fix = n.fix %% N.period
+  n.row.fix = i %% N.period
   if(n.row.fix == 0)  n.row.fix = N.period
   
   y = data$log.return[n.row.fix:(window_size+n.row.fix-1)]
   
-  
+  print(paste0("Fit ", input.data, ", tau = ", tau, ", n.fix = ", i, " (", which(n.fix == i), " of ", length(n.fix), ")"))
   if("mle" %in% strings){
     fit = fit.mle(spec, y)
   } else if("bayes" %in% strings){
     fit = fit.bayes(spec, y)
   }
 
+  print(paste0("Start draw ", input.data, ", tau = ", tau, ", n.fix = ", i, " (", which(n.fix == i), " of ", length(n.fix), ")"))
   draws = simahead_exclude_inf(spec, n = tau, m = N.sim, fit$theta, y)$draws
+  print(paste0("Finish draw ", input.data, ", tau = ", tau, ", n.fix = ", i, " (", which(n.fix == i), " of ", length(n.fix), ")"))
   VaR[n.row.fix, n.col.fix] = quantile(rowSums(draws, na.rm = T), alpha, na.rm = T, names = F)
 }
 
@@ -265,9 +270,13 @@ r <- data$log.return[(window_size+tau):(window_size+tau+N.period-1)]
 # write.table(VaR, file = "VaR_DAX.csv", sep = ";", col.names = T, row.names = F)
 
 backtesting_res = Backtesting(alpha, r, VaR)
-# write.table(backtesting_res, file = paste0("Output/", input.data, "_backtesting_results.csv"), sep = ";", col.names = T, row.names = F)
+write.table(backtesting_res, file = paste0("Output/", input.data, "_VaR_", tau, "_backtesting_results.csv"), sep = ";", col.names = T, row.names = F)
 
-SPA_res = SPA(alpha, r, VaR, benchmark = which(colnames(VaR) == "fit.bayes.sGARCH.t"))
+Loss <- apply(X = VaR, MARGIN = 2, FUN = function(x) MCS::LossVaR(realized = r, evaluated = x, tau = alpha, type = 'differentiable'))
+SSM <- MCSprocedure(Loss = Loss, alpha = alpha, verbose = F)
+sink(paste0("Output/", input.data, "_MCS_", tau, ".txt"))
+print(SSM)
+sink()
 
 # Automation --------------------------------------------------------------
 
