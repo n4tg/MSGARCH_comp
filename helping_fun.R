@@ -10,18 +10,24 @@ install_lib_local <- function(package, my.lib = "Packages"){
 }
 
 set_library <- function(){
-  if(!require(MSGARCH) || !require(data.table)){
+  if(!require(MSGARCH) || !require(data.table) || !require(MCS) || !require(MASS)){
     set_lib_path_local()
     library(MSGARCH)
     library(data.table)
+    library(MCS)
+    library(MASS)
   }
 }
 
 # Raw data processing -----------------------------------------------------
 
-read.data.closing <- function(in_file, length_data, head_data = F){
+read.data.closing <- function(in_file, length_data, start_date, head_data = F){
   data <- read.csv(paste0("Input/", in_file, ".csv"), sep = ",", stringsAsFactors = F)
   data <- data[order(as.Date(data$Date)), ]
+  
+  if(!missing(start_date)) {
+    data <- data[which(as.Date(data$Date) >= as.Date(start_date)),]
+  }
   
   if(!missing(length_data)){
     if(nrow(data)<=length_data) stop("Input file has smaller length than specified by length_data.")
@@ -75,9 +81,18 @@ simahead_exclude_inf <- function(object, n, m, theta, y){
   draws <- state <- matrix(data = NA, nrow = m, ncol = n)
   
   for(j in 1:n){
+    print(paste0("Random draws for time ", j, " out of ", n))
     for(i in 1:m){
       rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
-      while(length(which(is.infinite(rand$draws))) > 0) rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
+      tmp.it = 0
+      while(length(which(is.infinite(rand$draws)))+length((which(is.nan(rand$draws)))) > 0) {
+        rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
+        tmp.it = tmp.it + 1
+        if(tmp.it > 10000){
+          rand$draws = NA
+          break
+        }
+      }
       draws[i,j] = rand$draws
       state[i,j] = rand$state
     }
