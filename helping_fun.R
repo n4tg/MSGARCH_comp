@@ -12,8 +12,8 @@ install_lib_local <- function(package, my.lib = "Packages"){
 set_library <- function(){
   set_lib_path_local()
   library(MSGARCH)
-  library(data.table)
-  library(MCS)
+  #library(data.table)
+  #library(MCS)
   library(MASS)
   library(plyr)
   library(expm)
