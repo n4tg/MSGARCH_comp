@@ -30,7 +30,7 @@ distributions <- c("norm", "std")
 # Bayesian parameters
 N.sim = 50000 # number of draws
 N.thin = 50 # every N.thin'th draws are kept
-N.burn = 5000 # number of burn in draws
+N.burn = 50000 # number of burn in draws
 
 # VaR forecasting parameter
 alpha = 0.01
