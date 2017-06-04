@@ -88,16 +88,7 @@ for(i in interval){
   sim.data <- lapply(fit, function(f) MSGARCH::simahead(f, n=tau))
   #proc.time()-ptm
   
-  VaR_multi <- lapply(taus, function(tau) sapply(sim.data, function(sim) quantile(sim$draws[,tau], prob = alpha, na.rm = T)))
-  
-  l_ply(taus, function(t) {
-    l_ply(VaR_multi, function(v) {
-      res <- matrix(c(i, v), nrow = 1)
-      #colnames(res) <- c("i", specs)
-      write.table(res, file = paste0("Output/", input, "_VaR_", t, "_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F, append = T)
-      })
-    })
-  
-  
+  VaR_multi <- lapply(taus, function(tau) matrix(c(i, tau, sapply(sim.data, function(sim) quantile(sim$draws[,tau], prob = alpha, na.rm = T))), nrow = 1))
+  l_ply(VaR_multi, function(v) write.table(matrix(v[-2], nrow = 1), file = paste0("Output/tmp_", input, "_VaR_", v[2], "_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F, append = T))
 } 
 print("END OF LOOP")
