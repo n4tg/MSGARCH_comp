@@ -79,11 +79,11 @@ for(i in interval){
   write.table(as.matrix(wald), file = paste0("Output/", input, "_Wald_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = T, col.names = F, append = T)
   
   #ptm = proc.time()
-  print(paste0("Computing 1-period-ahead VaR at time ", i))
+  print(paste0("Computing 1-period-ahead VaR at time ", i, " out of ", max(interval)))
   VaR_1 <- sapply(fit, function(f) MSGARCH::risk(object = f, level = 1-alpha, ES = F, do.its = F)$VaR)
   write.table(matrix(c(i,VaR_1), nrow = 1), file = paste0("Output/", input, "_VaR_1_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F, append = T)
   
-  print(paste0("Computing multi-period-ahead VaR at time ", i))
+  print(paste0("Computing multi-period-ahead VaR at time ", i, " out of ", max(interval)))
   set.seed(123)
   sim.data <- lapply(fit, function(f) MSGARCH::simahead(f, n=tau))
   #proc.time()-ptm
