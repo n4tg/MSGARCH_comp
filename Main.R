@@ -68,15 +68,14 @@ for(i in interval){
   
   set.seed(123)
   fit <- lapply(spec, function(s) MSGARCH::fit.bayes(spec = s, y = y, ctr = ctr.bayes))
-  ic <- sapply(fit, function(f) list(AIC = MSGARCH::AIC(f), BIC = MSGARCH::BIC(f)) )
-
-  write.table(ic, file = paste0("Output/", input, "_AIC_BIC_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = T, col.names = F, append = T)
+                
+  ic <- data.frame(i, sapply(fit, function(f) list(AIC = MSGARCH::AIC(f), BIC = MSGARCH::BIC(f)) ))
+  write.table(as.matrix(ic), file = paste0("Output/", input, "_AIC_BIC_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = T, col.names = F, append = T)
   
   wald <- sapply(specs, function(t) test.Wald(theta_hat = matrix(colMeans(fit[[t]]$theta)), 
                                              Vn = var(fit[[t]]$theta), 
-                                             R = matrix(c(rep(0 , length(fit[[t]]$theta)/N.sim -2), 1, -1), nrow = 1) ))
-  
-  write.table(as.matrix(wald), file = paste0("Output/", input, "_Wald_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = T, col.names = F, append = T)
+                                             R = matrix(c(rep(0 , ncol(fit[[t]]$theta) -2), 1, -1), nrow = 1) ))
+  write.table(as.matrix(data.frame(i, wald)), file = paste0("Output/", input, "_Wald_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = T, col.names = F, append = T) 
   
   #ptm = proc.time()
   print(paste0("Computing 1-period-ahead VaR at time ", i, " out of ", max(interval)))
