@@ -97,29 +97,20 @@ test.DQ <- function(alpha, r, VaR, lags = 4){
   
   X = cbind(const, VaR_hat, tmp_Mat)
   
-  DQ = (t(Hit) %*% X %*% solve(t(X) %*% X) %*% t(X) %*% Hit)/(alpha*(1-alpha))
+  DQ = (t(Hit) %*% X %*% ginv(t(X) %*% X) %*% t(X) %*% Hit)/(alpha*(1-alpha))
   pval.DQ = 1 - pchisq(DQ, df = ncol(X))
   
   return(list(DQ = DQ, pval.DQ = pval.DQ))
 }
 
-# Superior predictive ability test ---------------------------------------
-# 
-# loss_fun <- function(alpha, r, VaR, delta = 25){
-#   mean( ( alpha - 1/(1+exp( delta*(r-VaR) ) ) ) * (r-VaR) )
-# }
-
-# test.rc <- function()
-
-
 # Wald test ---------------------------------------------------------------
 
-# test.Wald <- function(theta_hat,
-#                       Vn,
-#                       R,
-#                       r = 0){
-#   W <- t(R %*% theta_hat - r) %*% solve(R %*% Vn %*% t(R)) %*% (R %*% theta_hat - r)
-#   df <- nrow(R)
-#   pval <- 1-pchisq(as.numeric(W), df)
-#   return(data.frame(W = W, df = df, p = pval))
-# }
+test.Wald <- function(theta_hat,
+                      Vn,
+                      R,
+                      r = 0){
+  W <- t(R %*% theta_hat - r) %*% ginv(R %*% Vn %*% t(R)) %*% (R %*% theta_hat - r)
+  df <- nrow(R)
+  pval <- 1-pchisq(as.numeric(W), df)
+  return(data.frame(W = W, df = df, p = pval))
+}
