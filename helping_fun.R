@@ -10,43 +10,63 @@ install_lib_local <- function(package, my.lib = "Packages"){
 }
 
 set_library <- function(){
-  if(!require(MSGARCH) || !require(data.table)){
-    set_lib_path_local()
-    library(MSGARCH)
-    library(data.table)
-  }
+  set_lib_path_local()
+  library(MSGARCH)
+  library(data.table)
+  library(MCS)
+  library(MASS)
+  library(plyr)
+  library(expm)
 }
 
 # Raw data processing -----------------------------------------------------
 
-read.data.closing <- function(in_file, length_data, head_data = F){
+read.data.log.return <- function(in_file, start_date, end_date, length_lr = NULL){
   data <- read.csv(paste0("Input/", in_file, ".csv"), sep = ",", stringsAsFactors = F)
-  data <- data[order(as.Date(data$Date)), ]
+  data$Date <- as.Date(data$Date)
+  data <- data[order(data$Date), ]
   
-  if(!missing(length_data)){
-    if(nrow(data)<=length_data) stop("Input file has smaller length than specified by length_data.")
+  if(!missing(start_date)) {
+    data <- data[which(data$Date >= as.Date(start_date)),]
     
-    if(head_data){
-      data <- data[1:(length_data+1),]
-    } else {
-      data <- data[(nrow(data)-length_data):nrow(data),]
+    if(!missing(end_date)) {
+      data <- data[which(data$Date <= as.Date(end_date)),]
+      if(!is.null(length_lr)) {
+        warning("Parameters: start_date and end_date were given, so neglecting parameter: length_lr")
+        length_lr = NULL
+      }
+    }
+    
+    if(!is.null(length_lr)) {
+      if(nrow(data) <= length_lr) {
+        stop(paste0("Number of input data from time ", start_date, " is not larger than the given length_lr (", length_lr, ")."))
+      } else data <- data[1:(length_lr+1),] # nrow(data) = length_lr+1
     }
   }
   
-  return(list(date = as.Date(data$Date),
-              closing = data$Close,
-              log.return = 100*diff(log(data$Close))))
+  if(!missing(end_date)) {
+    data <- data[which(data$Date <= as.Date(end_date)),]
+    if(!is.null(length_lr)){
+      if(nrow(data) <= length_lr) {
+        stop(paste0("Number of input data up to time ", end_date, " is not larger than the given length_lr (", length_lr, ")."))
+      } else data <- data[(nrow(data) - length_lr):nrow(data),] # nrow(data) = length_lr+1
+    }
+  }
+  
+  return(list(Date = data$Date,
+              Adj.Close = data$Adj.Close,
+              LogReturn = 100*diff(log(data$Adj.Close))))
 }
 
 plot.data <- function(data, name, save_plot = F){
-  data$date <- as.Date(data$date)
+  data$Date <- as.Date(data$Date)
   
   if(save_plot) jpeg(paste0("Output/", name, "_historical_plots.jpg"), width = 800, height = 500, quality = 100)
   
   par(mfrow = c(2,1))
-  plot(data$date, data$closing, type = "l", xlab = "date", ylab = "closing value")
-  plot(data$date[-1], data$log.return, type = "l", xlab = "date", ylab = "log return value")
-  title(main = paste0(name, "\n" , min(data$date), " - ", max(data$date)), outer = T, line = -3)
+  plot(data$Date, data$closing, type = "l", xlab = "date", ylab = "closing value")
+  plot(data$Date[-1], data$log.return, type = "l", xlab = "date", ylab = "log return value")
+  title(main = paste0(name, "\n" , min(data$Date), " - ", max(data$Date)), outer = T, line = -3)
   
   if(save_plot) dev.off()
 }
@@ -75,9 +95,18 @@ simahead_exclude_inf <- function(object, n, m, theta, y){
   draws <- state <- matrix(data = NA, nrow = m, ncol = n)
   
   for(j in 1:n){
+    print(paste0("Random draws for time ", j, " out of ", n))
     for(i in 1:m){
       rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
-      while(length(which(is.infinite(rand$draws))) > 0) rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
+      tmp.it = 0
+      while(length(which(is.infinite(rand$draws)))+length((which(is.nan(rand$draws)))) > 0) {
+        rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
+        tmp.it = tmp.it + 1
+        if(tmp.it > 10000){
+          rand$draws = NA
+          break
+        }
+      }
       draws[i,j] = rand$draws
       state[i,j] = rand$state
     }
