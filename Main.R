@@ -1,31 +1,20 @@
 rm(list = ls())
 
-input = "DAX"
-interval = 1:200
-
-# NO CHANGES BELOW THIS LINE ----------------------------------------------
-
 # Set up ------------------------------------------------------------------
 # install.packages("devtools")
-#library(devtools)
-#install_github("keblu/MSGARCH/Package")
+# library(devtools)
+# install_github("keblu/MSGARCH/Package")
 source("helping_fun.R")
 source("testing_fun.R")
 set_library()
 
 # Input -------------------------------------------------------------------
 
-# input = "DAX"
-# interval = 1:200
+input = "SP500"
 
 # Models specification
 models <- c("sGARCH", "eGARCH", "gjrGARCH")
-# models <- c("sGARCH", "gjrGARCH")
 distributions <- c("norm", "std")
-
-# MLE parameters
-# do.init = T
-# itermax = 5000
 
 # Bayesian parameters
 N.sim = 50000 # number of draws
@@ -34,11 +23,11 @@ N.burn = 50000 # number of burn in draws
 
 # VaR forecasting parameter
 alpha = 0.01
-tau <- 22 # the tau period ahead of VaR prediction
-taus <- c(3, 10 ,22)
-window_size = 3000
+taus <- c(1, 3, 10, 22) # VaR_t+taus
+window_size <- 3000
+interval = 1:2000 # rolling windows
 
-# Main --------------------------------------------------------------------
+# Preprocessing -----------------------------------------------------------
 
 input.data <- read.data.log.return(input)
 
@@ -57,37 +46,54 @@ fit <- list()
 # ctr.mle <- list(do.init = do.init, itermax = itermax)
 ctr.bayes <- list(N.burn = N.burn, N.mcmc = N.sim, N.thin = N.thin, do.enhance.theta0 = T, adapt = T, acc.rate = 0.4)
 specs <- names(spec)
+bayes <- list()
+mle <- list()
+create.outfile(input, specs, taus)
+
+# Fit data and forecasting VaR --------------------------------------------
 
 for(i in interval){
   print(paste0("start computation for time ", i, " out of ", max(interval)))
   y <- input.data$LogReturn[i:(window_size+i-1)]
-  # fit.mle <- lapply(spec, function(s) fit.mle(spec = s, y = y))
-  # ctr.bayes.mle <- lapply(fit.mle, function(f) list(N.burn = N.burn, N.mcmc = N.sim, N.thin = N.thin, do.enhance.theta0 = T, adapt = TRUE, acc.rate = 0.4, theta0 = f$theta))
-  # fit.bayes.mle <- lapply(specs, function(s) fit.bayes(spec = spec[[s]], y = y, ctr = ctr.bayes.mle[[s]]))
-  # names(fit.bayes.mle) <- names(spec)
   
   set.seed(123)
-  fit <- lapply(spec, function(s) MSGARCH::fit.bayes(spec = s, y = y, ctr = ctr.bayes))
-                
-  ic <- data.frame(i, sapply(fit, function(f) list(AIC = MSGARCH::AIC(f), BIC = MSGARCH::BIC(f)) ))
-  write.table(as.matrix(ic), file = paste0("Output/", input, "_AIC_BIC_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = T, col.names = F, append = T)
-  
-  wald <- sapply(specs, function(t) test.Wald(theta_hat = matrix(colMeans(fit[[t]]$theta)), 
-                                             Vn = var(fit[[t]]$theta), 
-                                             R = matrix(c(rep(0 , ncol(fit[[t]]$theta) -2), 1, -1), nrow = 1) ))
-  write.table(as.matrix(data.frame(i, wald)), file = paste0("Output/", input, "_Wald_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = T, col.names = F, append = T) 
-  
+  bayes$fit <- lapply(spec, function(s) MSGARCH::fit.bayes(spec = s, y = y, ctr = ctr.bayes))
+  bayes$ic <- data.frame(i, sapply(bayes$fit, function(f) list(AIC = MSGARCH::AIC(f), BIC = MSGARCH::BIC(f)) ))
+  write.table(as.matrix(bayes$ic), file = paste0("Output/", input, "_AIC_BIC_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = T, col.names = F, append = T)
+
   #ptm = proc.time()
   print(paste0("Computing 1-period-ahead VaR at time ", i, " out of ", max(interval)))
-  VaR_1 <- sapply(fit, function(f) MSGARCH::risk(object = f, level = 1-alpha, ES = F, do.its = F)$VaR)
-  write.table(matrix(c(i,VaR_1), nrow = 1), file = paste0("Output/", input, "_VaR_1_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F, append = T)
+  bayes$VaR_1 <- sapply(bayes$fit, function(f) MSGARCH::risk(object = f, level = 1-alpha, ES = F, do.its = F)$VaR)
+  write.table(matrix(c(i,bayes$VaR_1), nrow = 1), file = paste0("Output/", input, "_VaR_1_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F, append = T)
   
   print(paste0("Computing multi-period-ahead VaR at time ", i, " out of ", max(interval)))
   set.seed(123)
-  sim.data <- lapply(fit, function(f) MSGARCH::simahead(f, n=tau))
+  bayes$sim.data <- lapply(bayes$fit, function(f) MSGARCH::simahead(f, n = max(taus)))
   #proc.time()-ptm
   
-  VaR_multi <- lapply(taus, function(tau) matrix(c(i, tau, sapply(sim.data, function(sim) quantile(sim$draws[,tau], prob = alpha, na.rm = T))), nrow = 1))
-  l_ply(VaR_multi, function(v) write.table(matrix(v[-2], nrow = 1), file = paste0("Output/", input, "_VaR_", v[2], "_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F, append = T))
-} 
+  bayes$VaR_multi <- lapply(taus[-1], function(tau) matrix(c(i, tau, sapply(bayes$sim.data, function(sim) quantile(sim$draws[,tau], prob = alpha, na.rm = T))), nrow = 1))
+  l_ply(bayes$VaR_multi, function(v) write.table(matrix(v[-2], nrow = 1), file = paste0("Output/", input, "_VaR_", v[2], "_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F, append = T))
+}
+
 print("END OF LOOP")
+
+# Forecasting evaluation --------------------------------------------------
+
+VaR <- list()
+VaR_t <- paste0("VaR_", taus)
+filename = paste0(input, "_VaR_", taus, "_", min(interval), "_", max(interval), ".csv")
+VaR <- lapply(filename, function(fn) read.csv(paste0("Output/", fn), header = T, stringsAsFactors = F, sep = ";"))
+names(VaR) <- VaR_t
+VaR <- lapply(taus, function(tau) check.VaR(VaR[[paste0("VaR_", tau)]], tau = tau))
+names(VaR) <- VaR_t
+
+# Backtesting and MCS
+l_ply(taus, function(tau){
+  VaR = VaR[[paste0("VaR_", tau)]]
+  N.period = nrow(VaR)
+  r = input.data$LogReturn[(window_size+tau):(window_size+tau+N.period-1)]
+  Backtesting(alpha = alpha, r = r, VaR = VaR, filename = paste0("Output/", input, "_Backtest_VaR_", tau, ".csv"))
+  test.MCS(r = r, VaR = VaR, LossFn = MCS::LossVaR, tau = alpha, type = 'differentiable', filename = paste0("Output/", input, "_MCS_VaR_", tau, ".txt"))
+  })
+
+print("END OF PROGRAM")

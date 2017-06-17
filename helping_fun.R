@@ -12,8 +12,8 @@ install_lib_local <- function(package, my.lib = "Packages"){
 set_library <- function(){
   set_lib_path_local()
   library(MSGARCH)
-  #library(data.table)
-  #library(MCS)
+  library(data.table)
+  library(MCS)
   library(MASS)
   library(plyr)
   library(expm)
@@ -97,18 +97,18 @@ simahead_exclude_inf <- function(object, n, m, theta, y){
   for(j in 1:n){
     print(paste0("Random draws for time ", j, " out of ", n))
     for(i in 1:m){
-      rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
-      tmp.it = 0
+      rand <- object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
+      tmp.it <- 0
       while(length(which(is.infinite(rand$draws)))+length((which(is.nan(rand$draws)))) > 0) {
-        rand = object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
-        tmp.it = tmp.it + 1
+        rand <- object$rcpp.func$rnd_Rcpp(1, theta, c(y, draws[i, 0:(j-1)]))
+        tmp.it <- tmp.it + 1
         if(tmp.it > 10000){
-          rand$draws = NA
+          rand$draws <- NA
           break
         }
       }
-      draws[i,j] = rand$draws
-      state[i,j] = rand$state
+      draws[i,j] <- rand$draws
+      state[i,j] <- rand$state
     }
   }
   
@@ -116,12 +116,81 @@ simahead_exclude_inf <- function(object, n, m, theta, y){
               state = state))
 }
 
+check.VaR <- function(VaR, tau, save.out = T){
+  N.period <- nrow(VaR)
+  n.fix <- find.n.fix(VaR)
+  
+  for(i in n.fix){
+    print(paste0("Start fix ", input, ", tau = ", tau, ", n.fix = ", i, " (", which(n.fix == i), " of ", length(n.fix), ")"))
+    n.col.fix <- find.n.col.fix(i, N.period)
+    spec.fix <- spec[[colnames(VaR[n.col.fix])]]
+    
+    n.row.fix <- find.n.row.fix(i, N.period)
+    
+    y <- input.data$LogReturn[(n.row.fix-tau+1):(n.row.fix+window_size-tau)]
+    
+    print(paste0("Fit ", input, ", tau = ", tau, ", n.fix = ", i, " (", which(n.fix == i), " of ", length(n.fix), ")"))
+    fit <- fit.bayes(spec = spec.fix, y = y, ctr = ctr.bayes)
+    
+    print(paste0("Start draw ", input, ", tau = ", tau, ", n.fix = ", i, " (", which(n.fix == i), " of ", length(n.fix), ")"))
+    draws <- simahead_exclude_inf(spec.fix, n = tau, m = N.sim, theta = colMeans(fit$theta), y = y)$draws
+    print(paste0("Finish draw ", input, ", tau = ", tau, ", n.fix = ", i, " (", which(n.fix == i), " of ", length(n.fix), ")"))
+    VaR[n.row.fix, n.col.fix] <- quantile(draws[, tau], na.rm = T, probs = alpha, names = F)
+    if(save.out) write.table(VaR, file = paste0("Output/", input, "_VaR_", tau, "_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F)
+  }
+  
+  # if(save.out) write.table(VaR, file = paste0("Output/", input, "_VaR_", tau, "_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F)
+  VaR$iteration <- NULL
+  return(VaR)
+}
+
+find.n.fix <- function(VaR){
+  n.fix.na <- which(is.na(VaR))
+  n.fix.inf <- which(is.infinite(as.matrix(VaR)))
+  n.fix.nan <- which(is.nan(as.matrix(VaR)))
+  VaR$iteration <- NULL
+  n.err <- which(abs(VaR) > 100)
+  n.fix <- c(n.fix.na, n.fix.inf, n.fix.nan, n.err+nrow(VaR))
+  return(n.fix)
+}
+
+find.n.col.fix <- function(n.fix, N.period){
+  ceiling(n.fix/N.period)
+}
+
+find.n.row.fix <- function(n.fix, N.period){
+  n.row.fix <- n.fix %% N.period
+  if(n.row.fix == 0)  n.row.fix <- N.period
+  return(n.row.fix)
+}
+
+check.invertMat <- function(mat){
+  n.period = nrow(mat)
+  n.fix <- find.n.fix(mat)
+  n.col.fix <- find.n.col.fix(n.fix, n.period)
+  n.row.fix <- find.n.row.fix(n.fix, n.period)
+  
+  if(is.na(mat[n.row.fix,n.col.fix]) || is.nan(mat[n.row.fix,n.col.fix])) mat[n.row.fix,n.col.fix] <- 0
+  if(is.infinite(mat[n.row.fix,n.col.fix])){
+    if(mat[n.row.fix,n.col.fix] < 0){mat[n.row.fix,n.col.fix] <- -1e6} else{mat[n.row.fix,n.col.fix] <- 1e6}
+  }
+  
+  return(mat)
+}
+
 check.alpha <- function(alpha){
-  if((!is.numeric(alpha)) || (alpha < 0) || (alpha > 1)) stop("Input argument (alpha) must be numeric between 0 and 1.")
+  if((alpha < 0) || (alpha > 1)) stop("Input argument (alpha) must be numeric between 0 and 1.")
+  alpha <- as.numeric(alpha)
   return(alpha)
 }
 
 check.hit <- function(hit){
   if(prod(hit %in% c(T,F))) stop("Input argument (hit) should be a vector consists of only 0 or FALSE or 1 or TRUE.")
   return(hit)
+}
+
+create.outfile <- function(input, specs, taus){
+  write.table(matrix(c("test", "iteration", specs), nrow = 1), file = paste0("Output/", input, "_AIC_BIC_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F)
+  taus = c(1, taus)
+  l_ply(taus, function(t) write.table(matrix(c("iteration", specs), nrow = 1), file = paste0("Output/", input, "_VaR_", t, "_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F))
 }
