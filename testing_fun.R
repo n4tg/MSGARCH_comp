@@ -1,11 +1,12 @@
-
 # MCS ---------------------------------------------------------------------
 
 test.MCS <- function(r, VaR, LossFn, 
                      save.out = T, filename = paste0("Output/MCS.txt"),
                      ...){
-  Loss <- apply(X = VaR, MARGIN = 2, FUN = function(x) LossFn(realized = r, evaluated = x, ...))
-  SSM <- MCSprocedure(Loss = Loss, alpha = alpha, verbose = F)
+  r = as.numeric(r)
+
+  Loss = apply(X = VaR, MARGIN = 2, FUN = function(x) LossFn(realized = r, evaluated = x, ...))
+  SSM = MCSprocedure(Loss = Loss, alpha = alpha, verbose = F)
   if(save.out){
     sink(filename)
     print(SSM)
@@ -19,6 +20,9 @@ test.MCS <- function(r, VaR, LossFn,
 # Wrapper function
 Backtesting <- function(alpha, r, VaR, lags = 4,
                         save.out = T, filename = paste0("Output/Backtest.csv")){
+  alpha = check.alpha(alpha)
+  r = as.numeric(r)
+
   hit = (r < VaR)
   
   tests = c("test.UC", "test.Ind", "test.CC", "test.DQ")
@@ -28,7 +32,6 @@ Backtesting <- function(alpha, r, VaR, lags = 4,
   for(test in tests){
     if(test == "test.DQ"){
       res = apply(X = VaR, MARGIN = 2, FUN = test, alpha = alpha, r = r, lags = lags)
-      # res = apply(as.matrix(VaR), 2, function(v) test.DQ(v, alpha = alpha, r = r, lags = lags))
     } else res = apply(X = hit, MARGIN = 2, FUN = test, alpha = alpha)
     res_table = cbind(res_table, rbindlist(res, use.names = T, fill = T))
   }
@@ -39,8 +42,8 @@ Backtesting <- function(alpha, r, VaR, lags = 4,
 
 # Unconditional coverage test
 test.UC <- function(alpha, hit){
-  # alpha <- check.alpha(alpha)
-  # hit <- check.hit(hit)
+  alpha = check.alpha(alpha)
+  hit = check.hit(hit)
   
   n0 = length(which(hit == 0))
   n1 = length(which(hit == 1))
@@ -54,8 +57,8 @@ test.UC <- function(alpha, hit){
 
 # Independence test
 test.Ind <- function(alpha, hit){
-  # alpha <- check.alpha(alpha)
-  # hit <- check.hit(hit)
+  alpha = check.alpha(alpha)
+  hit = check.hit(hit)
   
   n00 <- n01 <- n10 <- n11 <- 0
   
@@ -87,8 +90,8 @@ test.Ind <- function(alpha, hit){
 
 # Conditional coverage test
 test.CC <- function(alpha, hit){
-  # alpha <- check.alpha(alpha)
-  # hit <- check.hit(hit)
+  alpha = check.alpha(alpha)
+  hit = check.hit(hit)
   
   LR.CC = test.UC(alpha, hit)$LR.UC + test.Ind(alpha, hit)$LR.Ind
   pval.CC = 1- pchisq(LR.CC, df = 2)
@@ -98,6 +101,9 @@ test.CC <- function(alpha, hit){
 
 # Dynamic quantile test
 test.DQ <- function(alpha, r, VaR, lags = 4){
+  alpha = check.alpha(alpha)
+  r = as.numeric(r)
+
   N.period = length(r)
   H = (r<VaR)-alpha
   Hit = H[(lags+1):N.period]
@@ -111,9 +117,9 @@ test.DQ <- function(alpha, r, VaR, lags = 4){
   }
   
   X = cbind(const, VaR_hat, tmp_Mat)
-  # mat = t(X) %*% X
-
-  DQ = (t(Hit) %*% X %*% ginv(t(X) %*% X) %*% t(X) %*% Hit)/(alpha*(1-alpha))
+  mat = t(X) %*% X
+  mat = check.Mat(mat)
+  DQ = (t(Hit) %*% X %*% ginv(mat) %*% t(X) %*% Hit)/(alpha*(1-alpha))
   pval.DQ = 1 - pchisq(DQ, df = ncol(X))
   
   return(list(DQ = DQ, pval.DQ = pval.DQ))
@@ -125,8 +131,8 @@ test.Wald <- function(theta_hat,
                       Vn,
                       R,
                       r = 0){
-  W <- t(R %*% theta_hat - r) %*% ginv(R %*% Vn %*% t(R)) %*% (R %*% theta_hat - r)
-  df <- nrow(R)
-  pval <- 1-pchisq(as.numeric(W), df)
+  W = t(R %*% theta_hat - r) %*% ginv(R %*% Vn %*% t(R)) %*% (R %*% theta_hat - r)
+  df = nrow(R)
+  pval = 1-pchisq(as.numeric(W), df)
   return(data.frame(W = W, df = df, p = pval))
 }
