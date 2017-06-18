@@ -10,7 +10,7 @@ set_library()
 
 # Input -------------------------------------------------------------------
 
-input = "SP500"
+input = "DAX"
 
 # Models specification
 models <- c("sGARCH", "eGARCH", "gjrGARCH")
@@ -43,7 +43,6 @@ for(model in models){
 }
 
 fit <- list()
-# ctr.mle <- list(do.init = do.init, itermax = itermax)
 ctr.bayes <- list(N.burn = N.burn, N.mcmc = N.sim, N.thin = N.thin, do.enhance.theta0 = T, adapt = T, acc.rate = 0.4)
 specs <- names(spec)
 bayes <- list()
@@ -89,11 +88,11 @@ names(VaR) <- VaR_t
 
 # Backtesting and MCS
 l_ply(taus, function(tau){
-  VaR = VaR[[paste0("VaR_", tau)]]
-  N.period = nrow(VaR)
+  VaR_tau = VaR[[paste0("VaR_", tau)]]
+  N.period = nrow(VaR_tau)
   r = input.data$LogReturn[(window_size+tau):(window_size+tau+N.period-1)]
-  Backtesting(alpha = alpha, r = r, VaR = VaR, filename = paste0("Output/", input, "_Backtest_VaR_", tau, ".csv"))
-  test.MCS(r = r, VaR = VaR, LossFn = MCS::LossVaR, tau = alpha, type = 'differentiable', filename = paste0("Output/", input, "_MCS_VaR_", tau, ".txt"))
+  Backtesting(alpha = alpha, r = r, VaR = VaR_tau, filename = paste0("Output/", input, "_Backtest_VaR_", tau, ".csv"))
+  test.MCS(r = r, VaR = VaR_tau, LossFn = MCS::LossVaR, tau = alpha, type = 'differentiable', filename = paste0("Output/", input, "_MCS_VaR_", tau, ".txt"))
   })
 
 print("END OF PROGRAM")
