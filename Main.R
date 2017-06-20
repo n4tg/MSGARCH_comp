@@ -46,7 +46,6 @@ fit <- list()
 ctr.bayes <- list(N.burn = N.burn, N.mcmc = N.sim, N.thin = N.thin, do.enhance.theta0 = T, adapt = T, acc.rate = 0.4)
 specs <- names(spec)
 bayes <- list()
-mle <- list()
 create.outfile(input, specs, taus)
 
 # Fit data and forecasting VaR --------------------------------------------
