@@ -10,7 +10,8 @@ set_library()
 
 # Input -------------------------------------------------------------------
 
-input = "DAX"
+input = "Nikkei"
+roll_win_stat = 250 # window size for computing data statistics
 
 # Models specification
 models <- c("sGARCH", "eGARCH", "gjrGARCH")
@@ -30,6 +31,8 @@ interval = 1:2000 # rolling windows
 # Preprocessing -----------------------------------------------------------
 
 input.data <- read.data.log.return(input)
+summary.data(input.data$LogReturn[(window_size+1):(window_size+max(interval))], input, write_table = T)
+summary.data(input.data$LogReturn[(window_size+1):(window_size+max(interval))], input, stat = 'roll_win', roll_win = roll_win_stat, write_table = T)
 
 spec <- list()
 for(model in models){

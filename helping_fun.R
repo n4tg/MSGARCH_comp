@@ -71,11 +71,32 @@ plot.data <- function(data, name, save_plot = F){
   if(save_plot) dev.off()
 }
 
-summary.data <- function(data, name, write_table = F){
-  dat = data$log.return
-  df = data.frame(Mean = mean(dat), Variance = var(dat), N = length(dat), Min = min(dat), 
-                   Max = max(dat), Skewness = skewness(dat), Kurtosis = kurtosis(dat))
-  if(write_table) write.csv(df, file = paste0("Output/", name, "_stats.csv"), row.names = F)
+summary.data <- function(data, input, stat = 'all', write_table = F, ...){
+  #dat = data$log.return
+  opt_arg = list(...)
+  
+  if(stat=='all'){
+    df = data.frame(Data = input, Mean = mean(data), Variance = var(data), N = length(data), 
+                    Min = min(data), Max = max(data), Skewness = skewness(data), Kurtosis = kurtosis(data))
+  } else if(stat=='roll_win'){
+    if(is.null(opt_arg$roll_win)) stop("Please specify the rolling window length (roll_win) for statistics calculation; otherwise, use stat = 'all'.")
+    N.data = length(data)
+    roll_win = opt_arg$roll_win
+    df = lapply(1:(N.data-roll_win), 
+                function(i){
+                  dat = data[i:(i+roll_win-1)]
+                  data.frame(Mean = mean(dat), Variance = var(dat), Skewness = skewness(dat), Kurtosis = kurtosis(dat))}
+                )
+    df = rbindlist(df, use.names = T, fill = T)
+    df = cbind(Data = input, data.frame(t(colMeans(df))))
+  }
+  
+  if(write_table) {
+    if(!is.null(opt_arg$filename)){
+      filename = opt_arg$filename
+    } else filename = paste0("Output/", input, "_stats_", stat, ".csv")
+    write.table(df, file = filename, sep = ";", row.names = F)
+  }
   return(df)
 }
 
