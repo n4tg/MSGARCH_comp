@@ -17,12 +17,13 @@ set_library <- function(){
   library(MASS)
   library(plyr)
   library(expm)
+  library(dplyr)
 }
 
 # Raw data processing -----------------------------------------------------
 
-read.data.log.return <- function(in_file, start_date, end_date, length_lr = NULL){
-  data = read.csv(paste0("Input/", in_file, ".csv"), sep = ",", stringsAsFactors = F)
+read.data.log.return <- function(input, start_date, end_date, length_lr = NULL){
+  data = read.csv(paste0("Input/", input, ".csv"), sep = ",", stringsAsFactors = F)
   data$Date = as.Date(data$Date)
   data = data[order(data$Date), ]
   
@@ -58,24 +59,57 @@ read.data.log.return <- function(in_file, start_date, end_date, length_lr = NULL
               LogReturn = 100*diff(log(data$Adj.Close))))
 }
 
-plot.data <- function(data, name, save_plot = F){
+plot.data <- function(data, input, save_plot = F, ...){
+  opt_arg = list(...)
+  
   data$Date = as.Date(data$Date)
   
-  if(save_plot) jpeg(paste0("Output/", name, "_historical_plots.jpg"), width = 800, height = 500, quality = 100)
+  if(save_plot){
+    if(!is.null(opt_arg$filename)){
+      filename = opt_arg$filename
+    } else filename = paste0("Output/", input, "_data_plots.jpg")
+    jpeg(filename, width = 800, height = 500, quality = 100)
+  }
   
   par(mfrow = c(2,1))
-  plot(data$Date, data$closing, type = "l", xlab = "date", ylab = "closing value")
-  plot(data$Date[-1], data$log.return, type = "l", xlab = "date", ylab = "log return value")
-  title(main = paste0(name, "\n" , min(data$Date), " - ", max(data$Date)), outer = T, line = -3)
+  if(!is.null(opt_arg$N.trunc)){
+    N.trunc = opt_arg$N.trunc
+    data$Date = data$Date[1:(N.trunc+1)]
+    data$Adj.Close = data$Adj.Close[1:(N.trunc+1)]
+    data$LogReturn = data$LogReturn[1:N.trunc]
+  }
+  plot(data$Date, data$Adj.Close, type = "l", xlab = "date", ylab = "Adjusted closing value")
+  plot(data$Date[-1], data$LogReturn, type = "l", xlab = "date", ylab = "Log return value")
+  title(main = paste0(input, "\n" , min(data$Date), " - ", max(data$Date)), outer = T, line = -3)
   
   if(save_plot) dev.off()
 }
 
-summary.data <- function(data, name, write_table = F){
-  dat = data$log.return
-  df = data.frame(Mean = mean(dat), Variance = var(dat), N = length(dat), Min = min(dat), 
-                   Max = max(dat), Skewness = skewness(dat), Kurtosis = kurtosis(dat))
-  if(write_table) write.csv(df, file = paste0("Output/", name, "_stats.csv"), row.names = F)
+summary.data <- function(data, input, stat = 'all', write_table = F, ...){
+  opt_arg = list(...)
+  
+  if(stat=='all'){
+    df = data.frame(Data = input, Mean = mean(data), Variance = var(data), N = length(data), 
+                    Min = min(data), Max = max(data), Skewness = skewness(data), Kurtosis = kurtosis(data))
+  } else if(stat=='roll_win'){
+    if(is.null(opt_arg$roll_win)) stop("Please specify the rolling window length (roll_win) for statistics calculation; otherwise, use stat = 'all'.")
+    N.data = length(data)
+    roll_win = opt_arg$roll_win
+    df = lapply(1:(N.data-roll_win), 
+                function(i){
+                  dat = data[i:(i+roll_win-1)]
+                  data.frame(Mean = mean(dat), Variance = var(dat), Skewness = skewness(dat), Kurtosis = kurtosis(dat))}
+                )
+    df = rbindlist(df, use.names = T, fill = T)
+    df = cbind(Data = input, data.frame(t(colMeans(df))))
+  }
+  
+  if(write_table) {
+    if(!is.null(opt_arg$filename)){
+      filename = opt_arg$filename
+    } else filename = paste0("Output/", input, "_stats_", stat, ".csv")
+    write.table(df, file = filename, sep = ";", row.names = F)
+  }
   return(df)
 }
 
