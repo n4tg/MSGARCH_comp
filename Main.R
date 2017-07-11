@@ -100,7 +100,7 @@ VaR_t <- paste0("VaR_", taus)
 filename <- paste0(input, "_VaR_", taus, "_", min(interval), "_", max(interval), ".csv")
 VaR <- lapply(filename, function(fn) read.csv(paste0("Output/", fn), header = T, stringsAsFactors = F, sep = ";"))
 names(VaR) <- VaR_t
-VaR <- lapply(taus, function(tau) check.VaR(VaR[[paste0("VaR_", tau)]], tau = tau))
+VaR <- lapply(taus, function(tau) check.VaR(VaR[[paste0("VaR_", tau)]], tau = tau, input = input, interval = interval))
 names(VaR) <- VaR_t
 
 # Backtesting and MCS
