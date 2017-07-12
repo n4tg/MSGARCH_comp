@@ -1,5 +1,15 @@
 # MCS ---------------------------------------------------------------------
 
+## Function: test.MCS
+# Description: A wrapper function for doing MCS.
+# Input:  r - A numeric vector of the real data.
+#         VaR - A numeric matrix of the forecasted data.
+#         LossFn - A function indicates loss function used for MCS evaluation. 
+#                  See MCS package manual for possible choices.
+#         save.out - A logical input indicates whether the output MCS is saved or not.
+#         filename - A string for path and filename to which the output is saved.
+#         ... - Optional argument for the LossFn. See MCS package manual.
+# Output: An SSM object. See MCS package manual.
 test.MCS <- function(r, VaR, LossFn, 
                      save.out = T, filename = paste0("Output/MCS.txt"),
                      ...){
@@ -17,7 +27,15 @@ test.MCS <- function(r, VaR, LossFn,
 
 # Bactesting --------------------------------------------------------------
 
-# Wrapper function
+## Function: Backtesting
+# Description: A wrapper function for backtesting.
+# Input:  alpha - A number indicates shortfall probability.
+#         r - A numeric vector of the real data.
+#         VaR - A numeric matrix of the forecasted data.
+#         lags - A number indicates lags of Hit in DQ test. See Engle and Mangenelli (2004).
+#         save.out - A logical input indicates whether the backtesting output table is saved or not.
+#         filename - A string for path and filename to which the output is saved.
+# Output: A data table consists of model names, %violations, test statistics (UC, Ind, CC, DQ) and their p-values.
 Backtesting <- function(alpha, r, VaR, lags = 4,
                         save.out = T, filename = paste0("Output/Backtest.csv")){
   alpha = check.alpha(alpha)
@@ -40,7 +58,11 @@ Backtesting <- function(alpha, r, VaR, lags = 4,
   return(res_table)
 }
 
-# Unconditional coverage test
+## Function: test.UC
+# Description: Perform unconditional coverage test of Kupiec (1995).
+# Input:  alpha - A number indicates shortfall probability.
+#         hit - A numeric vector of hit sequence.
+# Output: A list consists of likelihood ratio of UC test (LR.UC) and its p-value (pval.UC).
 test.UC <- function(alpha, hit){
   alpha = check.alpha(alpha)
   hit = check.hit(hit)
@@ -55,7 +77,11 @@ test.UC <- function(alpha, hit){
   return(list(LR.UC = LR.UC, pval.UC = pval.UC))
 }
 
-# Independence test
+## Function: test.Ind
+# Description: Perform independent test as in Christoffersen (1998).
+# Input:  alpha - A number indicates shortfall probability.
+#         hit - A numeric vector of hit sequence.
+# Output: A list consists of likelihood ratio of Ind test (LR.Ind) and its p-value (pval.Ind).
 test.Ind <- function(alpha, hit){
   alpha = check.alpha(alpha)
   hit = check.hit(hit)
@@ -88,7 +114,12 @@ test.Ind <- function(alpha, hit){
   return(list(LR.Ind = LR.Ind, pval.Ind = pval.Ind))
 }
 
-# Conditional coverage test
+
+## Function: test.CC
+# Description: Perform conditional coverage test of Christoffersen (1998).
+# Input:  alpha - A number indicates shortfall probability.
+#         hit - A numeric vector of hit sequence.
+# Output: A list consists of likelihood ratio of CC test (LR.CC) and its p-value (pval.CC).
 test.CC <- function(alpha, hit){
   alpha = check.alpha(alpha)
   hit = check.hit(hit)
@@ -99,7 +130,13 @@ test.CC <- function(alpha, hit){
   return(list(LR.CC = LR.CC, pval.CC = pval.CC))
 }
 
-# Dynamic quantile test
+## Function: test.DQ
+# Description: Perform dynamic quantile test as in Engle and Mangenelli (2004).
+# Input:  alpha - A number indicates shortfall probability.
+#         r - A numeric vector of the real data.
+#         VaR - A numeric matrix of the forecasted data.
+#         lags - A number indicates lags of Hit.
+# Output: A list consists of DQ test statistics (DQ) and its p-value (pval.DQ).
 test.DQ <- function(alpha, r, VaR, lags = 4){
   alpha = check.alpha(alpha)
   r = as.numeric(r)
@@ -127,6 +164,13 @@ test.DQ <- function(alpha, r, VaR, lags = 4){
 
 # Wald test ---------------------------------------------------------------
 
+## Function: test.Wald
+# Description: Perform Wald test as in Engle and Mangenelli (2004).
+# Input:  theta_hat - A numeric vector of the estimated parameters.
+#         Vn - A numeric matrix represents parameters covariance matrix.
+#         R - A numeric vector or matrix of hypotheses coefficients.
+#         r - A numeric vector or number in accordance to the hypotheses.
+# Output: A list consists of Wald test statistics (W), its degree of freedom (df), and its p-value (pval).
 test.Wald <- function(theta_hat,
                       Vn,
                       R,
@@ -134,5 +178,5 @@ test.Wald <- function(theta_hat,
   W = t(R %*% theta_hat - r) %*% ginv(R %*% Vn %*% t(R)) %*% (R %*% theta_hat - r)
   df = nrow(R)
   pval = 1-pchisq(as.numeric(W), df)
-  return(data.frame(W = W, df = df, p = pval))
+  return(list(W = W, df = df, p = pval))
 }
