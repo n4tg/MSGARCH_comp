@@ -10,8 +10,10 @@ set_library()
 
 # Input -------------------------------------------------------------------
 
-input = "DAX"
+input = "DAX" # choice of "DAX", "SP500", and "Nikkei"
 roll_win_stat = 250 # window size for computing data statistics
+window_size <- 3000 # window length
+interval = 1:2000 # rolling windows index
 
 # Models specification
 models <- c("sGARCH", "eGARCH", "gjrGARCH")
@@ -19,14 +21,12 @@ distributions <- c("norm", "std")
 
 # Bayesian parameters
 N.sim = 50000 # number of draws
-N.thin = 50 # every N.thin'th draws are kept
-N.burn = 50000 # number of burn in draws
+N.thin = 50 # draws are kept at every N.thin'th
+N.burn = 50000 # number of burn-in draws
 
 # VaR forecasting parameter
-alpha = 0.01
-taus <- c(1, 3, 10, 22) # VaR_t+taus
-window_size <- 3000
-interval = 1:2000 # rolling windows
+alpha = 0.01 # shortfall probability
+taus <- c(1, 3, 10, 22) # forecasting horizon: VaR_t+taus
 
 # Preprocessing -----------------------------------------------------------
 
