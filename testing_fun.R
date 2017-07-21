@@ -6,7 +6,7 @@
 #         VaR - A numeric matrix of the forecasted data.
 #         LossFn - A function indicates loss function used for MCS evaluation. 
 #                  See MCS package manual for possible choices.
-#         save.out - A logical input indicates whether the output MCS is saved or not.
+#         save.out - A logical input indicates whether the output MCS is saved.
 #         filename - A string for path and filename to which the output is saved.
 #         ... - Optional argument for the LossFn. See MCS package manual.
 # Output: An SSM object. See MCS package manual.
@@ -135,7 +135,7 @@ test.CC <- function(alpha, hit){
 # Input:  alpha - A number indicates shortfall probability.
 #         r - A numeric vector of the real data.
 #         VaR - A numeric matrix of the forecasted data.
-#         lags - A number indicates lags of Hit.
+#         lags - A number indicates lags of Hit. Default as 4.
 # Output: A list consists of DQ test statistics (DQ) and its p-value (pval.DQ).
 test.DQ <- function(alpha, r, VaR, lags = 4){
   alpha = check.alpha(alpha)
@@ -165,11 +165,11 @@ test.DQ <- function(alpha, r, VaR, lags = 4){
 # Wald test ---------------------------------------------------------------
 
 ## Function: test.Wald
-# Description: Perform Wald test as in Engle and Mangenelli (2004).
+# Description: Perform Wald test.
 # Input:  theta_hat - A numeric vector of the estimated parameters.
 #         Vn - A numeric matrix represents parameters covariance matrix.
-#         R - A numeric vector or matrix of hypotheses coefficients.
-#         r - A numeric vector or number in accordance to the hypotheses.
+#         R - A numeric vector or matrix of hypothesis coefficients.
+#         r - A numeric vector or number in accordance to the hypothesis.
 # Output: A list consists of Wald test statistics (W), its degree of freedom (df), and its p-value (pval).
 test.Wald <- function(theta_hat,
                       Vn,
