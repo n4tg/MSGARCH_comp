@@ -1,17 +1,9 @@
 # Library handle ----------------------------------------------------------
 
-## Function: set_lib_path_local
-# Description: Add local folder to library path.
-# Input: my.lib - A string for local folder path. Default as "Packages".
-# Output: None.
-set_lib_path_local <- function(my.lib = "Packages"){
-  .libPaths(c(.libPaths(), my.lib))
-}
-
 ## Function: install_lib_local
-# Description: Install R package to local folder.
-# Input:  package -  A string represents R package name.
-#         my.lib - A string for local folder path. Default as "Packages".
+# Description: Install R package to the specified folder.
+# Input:  package -  A string represents an R package name.
+#         my.lib - A string for folder path. Default as "Packages".
 # Output: None.
 install_lib_local <- function(package, my.lib = "Packages"){
   set_lib_path_local(my.lib)
@@ -19,11 +11,15 @@ install_lib_local <- function(package, my.lib = "Packages"){
 }
 
 ## Function: set_library
-# Description: Call require packages for the project from the local folder.
-# Input:  None.
+# Description: Call require packages for the project.
+# Input:  user_lib - A logical input indicates whether the packages are 
+#                    called from specified folder, default as True. If 
+#                    false, packages are called from default R library.
+#         my.lib - A string for the folder path, not required when user_lib 
+#                  is False. Default as "Packages".
 # Output: None.
-set_library <- function(){
-  set_lib_path_local()
+set_library <- function(user_lib = T, my.lib = "Packages"){
+  if(user_lib) .libPaths(c(.libPaths(), my.lib))
   library(MSGARCH)
   library(data.table)
   library(MCS)
@@ -41,11 +37,11 @@ set_library <- function(){
 # Input:  input - A string indicates input data, i.e. "DAX", "SP500", or "Nikkei".
 #         start_date - (Optional) A date format of start date for the output data.
 #         end_date - (Optional) A date format of end date for the output data.
-#         length_lr - (Optional) A numeric input specifies the fixed output length.
+#         length_lr - (Optional) A numeric input specifies the fixed log-return output length.
 # Output: A list of
 #         + Date - A date object of the format: yyyy-mm-dd.
 #         + Adj.Close - A numeric vector of daily adjusted closing price at the specific date.
-#         + LogReturn - A numeric vector of daily log return of the adjusted closing price.
+#         + LogReturn - A numeric vector of daily log returns of the adjusted closing price.
 read.data.log.return <- function(input, start_date, end_date, length_lr = NULL){
   data = read.csv(paste0("Input/", input, ".csv"), sep = ",", stringsAsFactors = F)
   data$Date = as.Date(data$Date)
@@ -85,12 +81,11 @@ read.data.log.return <- function(input, start_date, end_date, length_lr = NULL){
 
 
 ## Function: plot.data
-# Description: Plot raw data and log return data.
+# Description: Plot raw data and log-return data.
 # Input:  data - A list similar to output from function "read.data.log.return".
 #         input - A string indicates input data, i.e. "DAX", "SP500", or "Nikkei".
-#         save_plot - A logical states whether the graphical out will be saved or not. Default as False.
-#         ... - optional argument:
-#           + filename - A path and name to which the graphical output is saved.
+#         save_plot - A logical input states whether the graphical output will be saved or not. Default as False.
+#         filename - (Optional) A path and name to which the graphical output is saved.
 # Output: A figure consists of two plots, raw data and log return data at the top and the low panels, respectively.
 plot.data <- function(data, input, save_plot = F, ...){
   opt_arg = list(...)
@@ -122,14 +117,14 @@ plot.data <- function(data, input, save_plot = F, ...){
 # Description: Display data statistics as a table.
 # Input:  data - A list similar to output from function "read.data.log.return".
 #         input - A string indicates input data, i.e. "DAX", "SP500", or "Nikkei".
-#         stat - A string determine whether the data statistics are calculated for the whole period ("all"),
+#         stat - A string determines whether the data statistics are calculated for the whole period ("all"),
 #                or based on rolling windows ("roll_win"). Default as stat = "all".
-#         write_table - A logical states whether the output table will be saved or not. Default as False.
+#         write_table - A logical input states whether the output table will be saved or not. Default as False.
 #         ... - optional argument:
 #           + filename - A path and name to which the output table is saved.
-#           + roll_win - A numeric input indicates window length, required when stat = "roll_win").
-# Output: A dataframe consists of input value and its following statistics: mean, variance, length, 
-#         minimum, maximum, skewness, and kurtosis of data.
+#           + roll_win - A numeric input indicates window length, required when stat = "roll_win".
+# Output: A dataframe consists of input string and its following statistics: mean, variance, length, 
+#         minimum, maximum, skewness, and kurtosis.
 summary.data <- function(data, input, stat = "all", write_table = F, ...){
   opt_arg = list(...)
   
@@ -209,13 +204,13 @@ simahead_exclude_inf <- function(object, n, m, theta, y){
 }
 
 ## Function: check.VaR
-# Description: Check whether the VaR is of the correct form, and correct it if not, 
-#              e.g. contains NA, NaN, (+/-)Inf.
+# Description: Check whether the VaR is of the correct form. If not, 
+#              e.g. contains NA, NaN, (+/-)Inf, correct it.
 # Input:  VaR - A vector or matrix of VaR.
-#         tau - A numeric value indicates tau steps ahead for VaR forecasting.
+#         tau - A number indicates forecasting steps for VaR prediction.
 #         save.out - A logical input indicates whether the corrected VaR is saved. Default as True.
 #         input - A string indicates input data, i.e. "DAX", "SP500", or "Nikkei".
-#         interval - A numeric vector of forecasting time index.
+#         interval - A numeric vector of time index.
 # Output: A numeric vector or matrix of corrected VaR.
 check.VaR <- function(VaR, tau, save.out = T, input, interval){
   tau = is.numeric(tau)
@@ -249,10 +244,9 @@ check.VaR <- function(VaR, tau, save.out = T, input, interval){
 }
 
 ## Function: find.n.fix
-# Description: Find implausible values, i.e. NA, NaN, (+/-)Inf, in the given VaR vector/matrix. 
-# Input:  VaR - A vector or matrix of VaR.
-# Output: A numeric vector or a number indicates the location of implausible VaR values.
-#         Return numeric(0) if the given VaR input is already of the corrected form.
+# Description: Find NA, NaN, (+/-)Inf, in the given vector/matrix. 
+# Input:  VaR - A vector or matrix of interest.
+# Output: A numeric vector or a number indicates the location of NA, NaN, (+/-)Inf.
 find.n.fix <- function(VaR){
   n.fix.na = which(is.na(VaR))
   n.fix.inf = which(is.infinite(as.matrix(VaR)))
@@ -263,7 +257,7 @@ find.n.fix <- function(VaR){
 
 ## Function: find.n.col.fix
 # Description: Find column of the given location and the total row size.
-# Input:  n.fix - A number of location (output from function "find.n.fix").
+# Input:  n.fix - A number of location (e.g. output from function "find.n.fix").
 #         N.period - A number of total row size of the considered matrix.
 # Output: A number indicates the column index, regarding the given location and total row size.
 find.n.col.fix <- function(n.fix, N.period){
@@ -275,7 +269,7 @@ find.n.col.fix <- function(n.fix, N.period){
 
 ## Function: find.n.row.fix
 # Description: Find row of the given location and the total row size.
-# Input:  n.fix - A number of location (output from function "find.n.fix").
+# Input:  n.fix - A number of location (e.g. output from function "find.n.fix").
 #         N.period - A number of total row size of the considered matrix.
 # Output: A number indicates the row index, regarding the given location and total row size.
 find.n.row.fix <- function(n.fix, N.period){
@@ -329,7 +323,7 @@ check.hit <- function(hit){
 }
 
 ## Function: create.outfile
-# Description: Create an output file for the creterion tests and VaR forecasting.
+# Description: Create an output file for the criteria tests and VaR forecasting.
 # Input:  input - A string indicates input data, i.e. "DAX", "SP500", or "Nikkei".
 #         specs - A vector of strings consist of all competitor models.
 #         taus - A numeric vector or a number of the forecasting period.
