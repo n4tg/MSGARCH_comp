@@ -16,10 +16,10 @@ The goodness of in-sample fit is evaulated based on:
 
 The forecasting performance is evaluated based on  
 1. Backtesting:
-+ Unconditional coverage test by Kupiec (1995),  
-+ Independence test by Christoffersen (1998),  
-+ Conditional coverage test by Christoffersen (1998),  
-+ Dynamic quantile test of Engle and Mangenelli (2004), and
+  + Unconditional coverage test by Kupiec (1995),  
+  + Independence test by Christoffersen (1998),  
+  + Conditional coverage test by Christoffersen (1998),  
+  + Dynamic quantile test of Engle and Mangenelli (2004), and
 2. Model confidence set by Hansen et al. (2011), with the VaR-based loss function defined by González-Rivera et al (2004).
 
 # Require R packages:  
