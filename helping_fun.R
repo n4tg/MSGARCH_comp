@@ -328,7 +328,7 @@ check.hit <- function(hit){
 #         specs - A vector of strings consist of all competitor models.
 #         taus - A numeric vector or a number of the forecasting period.
 # Output: None.
-create.outfile <- function(input, specs, taus){
+create.outfile <- function(input, specs, taus, interval){
   taus = as.numeric(taus)
   write.table(matrix(c("test", "iteration", specs), nrow = 1), file = paste0("Output/", input, "_AIC_BIC_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F)
   l_ply(taus, function(t) write.table(matrix(c("iteration", specs), nrow = 1), file = paste0("Output/", input, "_VaR_", t, "_", min(interval), "_", max(interval), ".csv"), sep = ";", row.names = F, col.names = F))
