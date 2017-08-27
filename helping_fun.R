@@ -210,7 +210,7 @@ simahead_exclude_inf <- function(object, n, m, theta, y){
 #         tau - A number indicates forecasting steps for VaR prediction.
 #         save.out - A logical input indicates whether the corrected VaR is saved. Default as True.
 #         input - A string indicates input data, i.e. "DAX", "SP500", or "Nikkei".
-#         interval - A numeric vector of time index.
+#         interval - A numeric vector or number of time index.
 # Output: A numeric vector or matrix of corrected VaR.
 check.VaR <- function(VaR, tau, save.out = T, input, interval){
   tau = is.numeric(tau)
@@ -327,6 +327,7 @@ check.hit <- function(hit){
 # Input:  input - A string indicates input data, i.e. "DAX", "SP500", or "Nikkei".
 #         specs - A vector of strings consist of all competitor models.
 #         taus - A numeric vector or a number of the forecasting period.
+#         interval - A numeric vector or number of time index.
 # Output: None.
 create.outfile <- function(input, specs, taus, interval){
   taus = as.numeric(taus)
