@@ -16,8 +16,17 @@ The goodness of in-sample fit is evaulated based on:
 
 The forecasting performance is evaluated based on  
 (1) Backtesting:  
-     + Unconditional coverage test by Kupiec (1995)  
-     + Independence test by Christoffersen (1998)  
-     + Conditional coverage test by Christoffersen (1998)  
-     + Dynamic quantile test of Engle and Mangenelli (2004)  
+&nbsp;- Unconditional coverage test by Kupiec (1995)  
+&nbsp;- Independence test by Christoffersen (1998)  
+&nbsp;- Conditional coverage test by Christoffersen (1998)  
+&nbsp;- Dynamic quantile test of Engle and Mangenelli (2004)  
 (2) Model confidence set by Hansen et al. (2011), with the VaR-based loss function defined by González-Rivera et al (2004).
+
+* Require R packages:  
++ MSGARCH: https://github.com/keblu/MSGARCH  
++ data.table: https://CRAN.R-project.org/package=data.table  
++ MCS: https://CRAN.R-project.org/package=MCS  
++ MASS: https://CRAN.R-project.org/package=MASS  
++ plyr: https://cran.r-project.org/package=plyr  
++ expm: https://CRAN.R-project.org/package=expm  
++ dplyr: https://cran.r-project.org/package=dplyr  
