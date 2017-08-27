@@ -19,8 +19,8 @@ The forecasting performance is evaluated based on
 + Unconditional coverage test by Kupiec (1995),  
 + Independence test by Christoffersen (1998),  
 + Conditional coverage test by Christoffersen (1998),  
-+ Dynamic quantile test of Engle and Mangenelli (2004), and  
-(2) Model confidence set by Hansen et al. (2011), with the VaR-based loss function defined by González-Rivera et al (2004).
++ Dynamic quantile test of Engle and Mangenelli (2004), and
+<br>(2) Model confidence set by Hansen et al. (2011), with the VaR-based loss function defined by González-Rivera et al (2004).
 
 # Require R packages:  
 + MSGARCH: https://github.com/keblu/MSGARCH  
